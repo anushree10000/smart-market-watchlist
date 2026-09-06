@@ -4,10 +4,9 @@
  * Vanilla JS, no build step, so this runs by pointing any static file
  * server at `frontend/`. It's a thin fetch/render layer over the REST API.
  */
-
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://127.0.0.1:8000"
-  : "https://smart-market-watchlist-nges.onrender.com";
+  : "https://smart-market-watchlist-eqes.onrender.com";
 
 const POLL_INTERVAL_MS = 5000;
 const AUTH_PATHS = ["/api/auth/login", "/api/auth/register"];
