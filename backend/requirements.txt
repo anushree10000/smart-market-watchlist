@@ -1,0 +1,14 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+pydantic>=2.9
+python-jose[cryptography]>=3.3
+passlib[bcrypt]>=1.7
+python-multipart>=0.0.9
+requests>=2.31
+# Pinned below 4.1: passlib 1.7.4 (last release, 2020) reads
+# bcrypt.__about__.__version__ to detect the backend version. That attribute
+# was removed in bcrypt 4.1.0, which makes passlib's hash()/verify() calls
+# throw AttributeError: module 'bcrypt' has no attribute '__about__' --
+# i.e. registration and login break. See https://github.com/pyca/bcrypt/issues/684
+bcrypt>=4.0,<4.1
