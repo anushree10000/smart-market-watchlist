@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timezone
 from typing import List
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.staticfiles import StaticFiles
@@ -18,11 +19,8 @@ app = FastAPI(title="Smart Market Watchlist API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # demo only -- lock this down to the real frontend origin in production
-    allow_credentials=False,  # we authenticate via an Authorization header, not cookies,
-                               # so we don't need credentialed CORS -- and combining a
-                               # wildcard origin with allow_credentials=True is invalid
-                               # per the CORS spec and some browsers will reject it outright
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
