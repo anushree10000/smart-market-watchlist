@@ -4,3 +4,8 @@ dist/
 build/
 .env*
 .DS_Store
+backend/venv/
+__pycache__/
+*.pyc
+*.db
+*.db-*
