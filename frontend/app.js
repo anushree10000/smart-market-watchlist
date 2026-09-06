@@ -5,9 +5,9 @@
  * server at `frontend/`. It's a thin fetch/render layer over the REST API.
  */
 
-const API_BASE = window.location.port === "8000"
-  ? ""
-  : "http://127.0.0.1:8000";
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://127.0.0.1:8000"
+  : "https://smart-market-watchlist-nges.onrender.com";
 
 const POLL_INTERVAL_MS = 5000;
 const AUTH_PATHS = ["/api/auth/login", "/api/auth/register"];
@@ -48,7 +48,7 @@ async function api(path, options = {}) {
     res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch (networkErr) {
     throw new Error(
-      `Can't reach the server at ${API_BASE || "this origin"}. Is the backend running on port 8000?`
+      `Can't reach the server at ${API_BASE || "this origin"}. Is the backend service active?`
     );
   }
 
@@ -258,10 +258,6 @@ function renderSearchResults(results, query) {
   }
 
   if (!results.length) {
-    // Empty on purpose, visibly -- an unstyled blank box under the input
-    // is indistinguishable from "this is broken." But the message stays
-    // purely product-facing: no server/config language, ever -- a user
-    // can't act on "set an env var," and it reads as an unfinished product.
     list.innerHTML = `<li class="search-empty">No matches for "${escapeHtml(query)}". Try a well-known ticker like AAPL, TSLA, or MSFT.</li>`;
     list.classList.remove("hidden");
     return;
@@ -321,8 +317,6 @@ document.getElementById("add-symbol-input").addEventListener("input", (e) => {
   searchDebounceHandle = setTimeout(async () => {
     try {
       const results = await api(`/api/symbols/search?q=${encodeURIComponent(query)}`);
-      // A slow/out-of-order response for a query the user has already changed
-      // would flash stale results -- only render if this is still the latest query.
       if (document.getElementById("add-symbol-input").value.trim() === query) {
         renderSearchResults(results, query);
       }
@@ -434,14 +428,13 @@ async function refreshActiveWatchlist() {
   try {
     data = await api(`/api/watchlists/${state.activeWatchlistId}/state`);
   } catch (err) {
-    return; // transient network hiccup -- next poll retries; don't spam the user
+    return;
   }
   renderSinceLastChecked(data.items);
   renderWatchlistTable(data.items);
   document.getElementById("last-refresh").textContent =
     "Updated " + new Date(data.generated_at).toLocaleTimeString();
 
-  // Dynamic live source indicator in header
   const statusEl = document.getElementById("market-status");
   if (statusEl) {
     if (data.items.length > 0) {
@@ -589,10 +582,6 @@ function chartThemeColors() {
   };
 }
 
-/**
- * Dependency-free line chart, drawn straight onto canvas.
- * Supports high-DPR crisp rendering, optional area fill, and interactive hover crosshair.
- */
 function drawLineChart(canvas, points, options = {}) {
   if (!canvas || !points || points.length < 2) return;
   const colors = chartThemeColors();
@@ -623,7 +612,6 @@ function drawLineChart(canvas, points, options = {}) {
   const xAt = (i) => padding.left + (i / (points.length - 1)) * plotWidth;
   const yAt = (price) => padding.top + (1 - (price - minP) / (maxP - minP)) * plotHeight;
 
-  // Horizontal gridlines + y-axis price labels
   const bands = options.bands || 4;
   ctx.strokeStyle = colors.grid;
   ctx.fillStyle = colors.text;
@@ -642,7 +630,6 @@ function drawLineChart(canvas, points, options = {}) {
     ctx.fillText("$" + price.toFixed(2), padding.left - 8, y);
   }
 
-  // Time labels on x-axis
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   const labelCount = Math.min(options.labelCount || 5, points.length);
@@ -652,7 +639,6 @@ function drawLineChart(canvas, points, options = {}) {
     ctx.fillText(t, xAt(i), cssHeight - padding.bottom + 6);
   }
 
-  // Area fill under the line
   if (options.fill !== false) {
     ctx.beginPath();
     points.forEach((p, i) => {
@@ -670,7 +656,6 @@ function drawLineChart(canvas, points, options = {}) {
     ctx.fill();
   }
 
-  // Price stroke line
   ctx.beginPath();
   points.forEach((p, i) => {
     const x = xAt(i);
@@ -682,13 +667,11 @@ function drawLineChart(canvas, points, options = {}) {
   ctx.lineJoin = "round";
   ctx.stroke();
 
-  // Interactive Hover Crosshair & Point Highlight
   if (options.hoverIndex != null && options.hoverIndex >= 0 && options.hoverIndex < points.length) {
     const hi = options.hoverIndex;
     const hx = xAt(hi);
     const hy = yAt(points[hi].price);
 
-    // Vertical line
     ctx.beginPath();
     ctx.setLineDash([4, 4]);
     ctx.strokeStyle = colors.crosshair;
@@ -698,7 +681,6 @@ function drawLineChart(canvas, points, options = {}) {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Highlight dot
     ctx.beginPath();
     ctx.arc(hx, hy, 5, 0, Math.PI * 2);
     ctx.fillStyle = colors.line;
@@ -823,7 +805,6 @@ async function openLargeChart(symbol) {
     padding: { top: 18, right: 18, bottom: 28, left: 64 },
   });
 
-  // Setup canvas mouse interaction for tooltips & crosshairs
   canvas.onmousemove = (e) => {
     if (!modalChartPoints || modalChartPoints.length < 2) return;
     const rect = canvas.getBoundingClientRect();
@@ -993,7 +974,6 @@ function initDetailPanelResize() {
   let startX = 0;
   let startWidth = 0;
 
-  // Dragging to resize width
   handle.addEventListener("mousedown", (e) => {
     isDragging = true;
     startX = e.clientX;
@@ -1027,7 +1007,6 @@ function initDetailPanelResize() {
 
   document.addEventListener("mouseup", stopDrag);
 
-  // Touch device support
   handle.addEventListener("touchstart", (e) => {
     if (e.touches.length === 1) {
       isDragging = true;
@@ -1047,12 +1026,10 @@ function initDetailPanelResize() {
 
   document.addEventListener("touchend", stopDrag);
 
-  // Double-click handle to toggle wide view
   handle.addEventListener("dblclick", () => {
     togglePanelWidth();
   });
 
-  // Expand / Collapse button
   if (expandBtn) {
     expandBtn.addEventListener("click", () => {
       togglePanelWidth();
